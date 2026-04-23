@@ -1,59 +1,52 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { io } from "socket.io-client";
 
-export default function Orders() {
-  const [storeId, setStoreId] = useState("");
-  const [orders, setOrders] = useState<any[]>([]);
+const socket = io("http://localhost:5000");
 
-  const fetchOrders = async () => {
-    const res = await fetch(
-      `http://localhost:8081/api/orders?store_id=${storeId}`
-    );
-    const data = await res.json();
-    setOrders(data);
-  };
+export default function OrdersPage() {
+  const [orders, setOrders] = useState([]);
+
+  useEffect(() => {
+    // 🔥 LOAD INITIAL DATA
+    fetch("http://localhost:5000/api/orders")
+      .then((res) => res.json())
+      .then((data) => setOrders(data));
+
+    // 🔥 NEW ORDER EVENT
+    socket.on("new_order", (order) => {
+      setOrders((prev) => [...prev, order]);
+    });
+
+    // 🔥 ORDER UPDATE EVENT
+    socket.on("order_updated", (updatedOrder) => {
+      setOrders((prev) =>
+        prev.map((o) =>
+          o.id === updatedOrder.id ? updatedOrder : o
+        )
+      );
+    });
+
+    return () => {
+      socket.off("new_order");
+      socket.off("order_updated");
+    };
+  }, []);
 
   return (
-    <div className="min-h-screen bg-gray-100 p-10">
+    <div>
+      <h1>Orders</h1>
 
-      <h2 className="text-3xl font-bold mb-6">Orders</h2>
-
-      <div className="flex gap-3 mb-6">
-        <input
-          className="p-2 border rounded w-64"
-          placeholder="Store ID"
-          value={storeId}
-          onChange={(e) => setStoreId(e.target.value)}
-        />
-
-        <button
-          onClick={fetchOrders}
-          className="bg-green-500 text-white px-4 py-2 rounded"
-        >
-          Fetch
-        </button>
-      </div>
-
-      <div className="grid gap-4">
-
-        {orders.map((o) => (
-          <div
-            key={o.id}
-            className="bg-white p-4 rounded-xl shadow flex justify-between"
-          >
-            <div>
-              <p className="font-bold">Order #{o.id}</p>
-              <p className="text-gray-500">Store: {o.store_id}</p>
-            </div>
-
-            <div className="font-semibold text-blue-600">
-              {o.status}
-            </div>
+      {orders.length === 0 ? (
+        <p>No orders yet</p>
+      ) : (
+        orders.map((o) => (
+          <div key={o.id}>
+            {o.product} - {o.status}
           </div>
-        ))}
-
-      </div>
+        ))
+      )}
     </div>
   );
 }

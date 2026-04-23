@@ -1,22 +1,26 @@
 const express = require("express");
+const http = require("http");
 const cors = require("cors");
 
+const { initSocket } = require("./sockets/socket");
+
 const orderRoutes = require("./routes/orderRoutes");
+const analyticsRoutes = require("./routes/analyticsRoutes");
+const archiveRoutes = require("./routes/archiveRoutes");
 
 const app = express();
-
-// Middleware
 app.use(cors());
 app.use(express.json());
 
-// Routes (IMPORTANT: /api prefix)
-app.use("/api", orderRoutes);
+app.use("/api/orders", orderRoutes);
+app.use("/api/analytics", analyticsRoutes);
+app.use("/api/archive", archiveRoutes);
 
-const PORT = 8081;
+const server = http.createServer(app);
 
-app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
+// INIT SOCKET
+initSocket(server);
+
+server.listen(5000, () => {
+  console.log("Server running on port 5000");
 });
-
-
-

@@ -1,11 +1,15 @@
 const express = require("express");
 const router = express.Router();
 
-const controller = require("../controllers/orderController");
+const {
+  createOrder,
+  getOrders,
+  updateStatus,
+} = require("../controllers/orderController");
 
-// APIs
-router.post("/orders", controller.createOrder);
-router.get("/orders", controller.getOrders);
-router.patch("/orders/:id/status", controller.updateStatus);
+// REQUIRED BY TASK
+router.post("/", createOrder);
+router.get("/", getOrders);
+router.patch("/:id/status", updateStatus);
 
 module.exports = router;
