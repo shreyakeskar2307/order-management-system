@@ -8,17 +8,19 @@ export default function CreateOrder() {
   const createOrder = async () => {
     await fetch("http://localhost:5000/api/orders", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ product }),
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        store_id: 1,
+        items: [{ name: product, qty: 1 }],
+        total_amount: 100,
+      }),
     });
 
     setProduct("");
   };
 
   return (
-    <div>
+    <div style={{ padding: 20 }}>
       <h1>Create Order</h1>
 
       <input

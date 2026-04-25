@@ -1,24 +1,22 @@
 const express = require("express");
-const http = require("http");
 const cors = require("cors");
-
-const { initSocket } = require("./sockets/socket");
+const http = require("http");
 
 const orderRoutes = require("./routes/orderRoutes");
 const analyticsRoutes = require("./routes/analyticsRoutes");
-const archiveRoutes = require("./routes/archiveRoutes");
+const { initSocket } = require("./sockets/socket");
 
 const app = express();
+const server = http.createServer(app);
+
 app.use(cors());
 app.use(express.json());
 
+// ROUTES
 app.use("/api/orders", orderRoutes);
 app.use("/api/analytics", analyticsRoutes);
-app.use("/api/archive", archiveRoutes);
 
-const server = http.createServer(app);
-
-// INIT SOCKET
+// SOCKET
 initSocket(server);
 
 server.listen(5000, () => {

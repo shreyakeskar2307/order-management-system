@@ -85,7 +85,6 @@
 //   });
 // };
 
-
 const db = require("../config/db");
 const { getIO } = require("../sockets/socket");
 
@@ -98,14 +97,20 @@ exports.createOrder = async (req, res) => {
       return res.status(400).json({ message: "Missing fields" });
     }
 
-    if (typeof items !== "string") {
-      items = JSON.stringify(items);
-    }
+    // remove invalid items
+    items = items.filter(
+      (i) => i.name && i.name.trim() !== ""
+    );
 
     const [result] = await db.query(
-      `INSERT INTO orders (store_id, items, total_amount, status, created_at)
-       VALUES (?, ?, ?, 'PLACED', NOW())`,
-      [store_id, items, total_amount]
+      `INSERT INTO orders (store_id, items, total_amount, status)
+       VALUES (?, ?, ?, ?)`,
+      [
+        store_id,
+        JSON.stringify(items),
+        total_amount,
+        "PLACED",
+      ]
     );
 
     const newOrder = {
@@ -116,64 +121,24 @@ exports.createOrder = async (req, res) => {
       status: "PLACED",
     };
 
-    getIO().emit("new_order", newOrder);
+    // FIXED SOCKET EVENT NAME
+    getIO().emit("newOrder", newOrder);
 
     res.json(newOrder);
   } catch (err) {
-    res.status(500).json(err);
+    console.log(err);
+    res.status(500).json({ error: err.message });
   }
 };
 
-// GET ORDERS (WITH FILTER + PAGINATION)
+// GET ORDERS
 exports.getOrders = async (req, res) => {
   try {
-    const { store_id, page = 1, limit = 10 } = req.query;
-
-    const offset = (page - 1) * limit;
-
-    let sql = "SELECT * FROM orders";
-    let params = [];
-
-    if (store_id) {
-      sql += " WHERE store_id = ?";
-      params.push(store_id);
-    }
-
-    sql += " ORDER BY created_at DESC LIMIT ? OFFSET ?";
-    params.push(parseInt(limit), parseInt(offset));
-
-    const [rows] = await db.query(sql, params);
-
-    res.json(rows);
-  } catch (err) {
-    res.status(500).json(err);
-  }
-};
-
-// UPDATE STATUS
-exports.updateStatus = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { status } = req.body;
-
-    const allowed = ["PLACED", "PREPARING", "COMPLETED"];
-    if (!allowed.includes(status)) {
-      return res.status(400).json({ message: "Invalid status" });
-    }
-
-    await db.query(
-      "UPDATE orders SET status=? WHERE id=?",
-      [status, id]
+    const [rows] = await db.query(
+      "SELECT * FROM orders ORDER BY created_at DESC"
     );
 
-    const updatedOrder = {
-      id,
-      status,
-    };
-
-    getIO().emit("order_updated", updatedOrder);
-
-    res.json(updatedOrder);
+    res.json(rows);
   } catch (err) {
     res.status(500).json(err);
   }

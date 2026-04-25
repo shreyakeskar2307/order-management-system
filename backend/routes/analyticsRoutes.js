@@ -2,11 +2,14 @@ const express = require("express");
 const router = express.Router();
 const db = require("../config/db");
 
-// Orders per day
+// =======================
+// ORDERS PER DAY
+// =======================
 router.get("/orders-per-day", async (req, res) => {
   try {
     const [rows] = await db.query(`
-      SELECT DATE(created_at) as day, COUNT(*) as total_orders
+      SELECT DATE(created_at) as day,
+             COUNT(*) as total_orders
       FROM orders
       GROUP BY DATE(created_at)
       ORDER BY day DESC
@@ -18,11 +21,14 @@ router.get("/orders-per-day", async (req, res) => {
   }
 });
 
-// Revenue per store
+// =======================
+// REVENUE PER STORE
+// =======================
 router.get("/revenue-per-store", async (req, res) => {
   try {
     const [rows] = await db.query(`
-      SELECT store_id, SUM(total_amount) as revenue
+      SELECT store_id,
+             SUM(total_amount) as revenue
       FROM orders
       GROUP BY store_id
     `);
@@ -33,18 +39,36 @@ router.get("/revenue-per-store", async (req, res) => {
   }
 });
 
-// Top products (simple version)
+// =======================
+// TOP PRODUCTS
+// =======================
 router.get("/top-products", async (req, res) => {
   try {
-    const [rows] = await db.query(`
-      SELECT items, COUNT(*) as count
-      FROM orders
-      GROUP BY items
-      ORDER BY count DESC
-      LIMIT 5
-    `);
+    const [rows] = await db.query(`SELECT items FROM orders`);
 
-    res.json(rows);
+    let map = {};
+
+    rows.forEach((row) => {
+      let items = [];
+
+      try {
+        items = JSON.parse(row.items);
+      } catch {
+        items = [];
+      }
+
+      items.forEach((i) => {
+        const name = i.name || "unknown";
+        map[name] = (map[name] || 0) + (i.qty || 1);
+      });
+    });
+
+    const result = Object.keys(map).map((key) => ({
+      product: key,
+      count: map[key],
+    }));
+
+    res.json(result);
   } catch (err) {
     res.status(500).json(err);
   }
